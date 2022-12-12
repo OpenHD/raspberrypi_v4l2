@@ -268,7 +268,7 @@ static void veye327_set_default_format(struct veye327 *veye327)
 static int veye327_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
 	struct v4l2_mbus_framefmt *try_fmt =
-		v4l2_subdev_get_try_format(sd, fh->pad, 0);
+		v4l2_subdev_get_try_format(sd, fh->state, 0);
     VEYE_TRACE
 	/* Initialize try_fmt */
 	try_fmt->width = supported_modes[0].width;
@@ -342,7 +342,7 @@ static const struct v4l2_ctrl_ops veye327_ctrl_ops = {
 };
 
 static int veye327_enum_mbus_code(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_pad_config *cfg,
+				 struct v4l2_subdev_state *sd_state,
 				 struct v4l2_subdev_mbus_code_enum *code)
 {
     VEYE_TRACE
@@ -353,7 +353,7 @@ static int veye327_enum_mbus_code(struct v4l2_subdev *sd,
 }
 
 static int veye327_enum_frame_size(struct v4l2_subdev *sd,
-				  struct v4l2_subdev_pad_config *cfg,
+				  struct v4l2_subdev_state *sd_state,
 				  struct v4l2_subdev_frame_size_enum *fse)
 {
     VEYE_TRACE
@@ -372,14 +372,14 @@ static int veye327_enum_frame_size(struct v4l2_subdev *sd,
 }
 
 static int __veye327_get_pad_format(struct veye327 *veye327,
-				   struct v4l2_subdev_pad_config *cfg,
+				   struct v4l2_subdev_state *sd_state,
 				   struct v4l2_subdev_format *fmt)
 {
     //struct veye327 *veye327 = to_veye327(sd);
     const struct veye327_mode *mode = veye327->mode;
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
 #ifdef CONFIG_VIDEO_V4L2_SUBDEV_API
-                fmt->format = *v4l2_subdev_get_try_format(&veye327->sd, cfg, fmt->pad);
+                fmt->format = *v4l2_subdev_get_try_format(&veye327->sd, sd_state, fmt->pad);
 #else
                 mutex_unlock(&veye327->mutex);
                 return -ENOTTY;
@@ -394,21 +394,21 @@ static int __veye327_get_pad_format(struct veye327 *veye327,
 }
 
 static int veye327_get_pad_format(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_pad_config *cfg,
+				 struct v4l2_subdev_state *sd_state,
 				 struct v4l2_subdev_format *fmt)
 {
 	struct veye327 *veye327 = to_veye327(sd);
 	int ret;
     VEYE_TRACE
 	mutex_lock(&veye327->mutex);
-	ret = __veye327_get_pad_format(veye327, cfg, fmt);
+	ret = __veye327_get_pad_format(veye327, sd_state, fmt);
 	mutex_unlock(&veye327->mutex);
 
 	return ret;
 }
 
 static int veye327_set_pad_format(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_pad_config *cfg,
+				 struct v4l2_subdev_state *sd_state,
 				 struct v4l2_subdev_format *fmt)
 {
 	struct veye327 *veye327 = to_veye327(sd);
@@ -955,7 +955,7 @@ static int veye327_probe(struct i2c_client *client)
 	if (ret)
 		goto error_handler_free;
 
-	ret = v4l2_async_register_subdev_sensor_common(&veye327->sd);
+	ret = v4l2_async_register_subdev_sensor(&veye327->sd);
 	if (ret < 0) {
 		dev_err(dev, "failed to register sensor sub-device: %d\n", ret);
 		goto error_media_entity;
